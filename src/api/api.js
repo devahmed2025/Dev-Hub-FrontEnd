@@ -34,12 +34,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      originalRequest.url.includes('/auth/me') ||
-      originalRequest.url.includes('/auth/refresh-token')
-    ) {
-      return Promise.reject(error);
-    }
+    // if (
+    //   originalRequest.url.includes('/auth/me') ||
+    //   originalRequest.url.includes('/auth/refresh-token')
+    // ) {
+    //   return Promise.reject(error);
+    // }
 
     const isTokenExpired =
       error.response?.status === 401 &&
