@@ -1,92 +1,3 @@
-// import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-
-// import { toast } from 'react-toastify';
-
-// export const logoutUserThunk = createAsyncThunk(
-//   'auth/logoutUser',
-//   async (_, { rejectWithValue }) => {
-//     try {
-//       await logoutUser(); // actual API call
-//       toast.success('Logged out successfully');
-//     } catch (error) {
-//       console.error('Logout API failed:', error);
-//       toast.error('Logout failed');
-//       return rejectWithValue(error.response?.data || error.message);
-//     }
-//   }
-// );
-
-// const loadInitialState = () => {
-//   return {
-//     user: null,
-//     isAuthenticated: false,
-//     isLoading: true,
-//     isLoggingIn: false,
-//     oauthLoading: false,
-//     oauthError: null,
-//   };
-// };
-
-// const authSlice = createSlice({
-//   name: 'auth',
-//   initialState: loadInitialState(),
-//   reducers: {
-//     login(state, action) {
-//       state.user = action.payload.user;
-//       state.isAuthenticated = true;
-//       state.isLoading = false;
-//       state.isLoggingIn = false;
-//     },
-//     logout(state) {
-//       state.user = null;
-//       state.isAuthenticated = false;
-//       state.isLoading = false;
-//       state.isLoggingIn = false;
-//     },
-//     updateUser(state, action) {
-//       state.user = { ...state.user, ...action.payload };
-//     },
-//     setLoading(state, action) {
-//       state.isLoading = action.payload;
-//     },
-//     setLoggingIn(state, action) {
-//       state.isLoggingIn = action.payload;
-//     },
-//     setAuthState(state, action) {
-//       state.user = action.payload.user;
-//       state.isAuthenticated = !!action.payload.user;
-//       state.isLoading = false;
-//       state.isLoggingIn = false;
-//     },
-//     startOAuth(state) {
-//       state.oauthLoading = true;
-//       state.oauthError = null;
-//     },
-//     oauthSuccess(state, action) {
-//       state.user = action.payload.user;
-//       state.isAuthenticated = true;
-//       state.oauthLoading = false;
-//     },
-//     oauthFailure(state, action) {
-//       state.oauthLoading = false;
-//       state.oauthError = action.payload;
-//     },
-//   },
-// });
-
-// export const {
-//   login,
-//   logout,
-//   updateUser,
-//   setLoading,
-//   setAuthState,
-//   setLoggingIn,
-//   startOAuth,
-//   oauthSuccess,
-//   oauthFailure,
-// } = authSlice.actions;
-// export default authSlice.reducer;
-
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import { logoutUser } from '../../api/api';
 import { toast } from 'react-toastify';
@@ -101,6 +12,17 @@ export const logoutUserThunk = createAsyncThunk(
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout API failed:', error);
+
+      // ✅ Still proceed with logout even if API fails
+      // This handles cases where token is expired/invalid
+      if (error.response?.status === 401) {
+        console.log(
+          'Token expired during logout - proceeding with local logout'
+        );
+        toast.success('Logged out successfully');
+        return; // Don't reject, just proceed with logout
+      }
+
       toast.error('Logout failed');
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -112,7 +34,7 @@ export const fetchUserThunk = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get('/auth/me');
-      console.log(res.data.data,'res of auth slice')
+      console.log(res.data.data, 'res of auth slice');
       return res.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
@@ -186,12 +108,19 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.isLoggingIn = false;
     });
-    builder.addCase(logoutUserThunk.rejected, (state) => {
-      // Optional: still clear state in case of failure
-      state.user = null;
-      state.isAuthenticated = false;
-      state.isLoading = false;
-      state.isLoggingIn = false;
+    builder.addCase(logoutUserThunk.rejected, (state, action) => {
+      // ✅ Still clear state for 401 errors (expired tokens)
+      if (
+        action.error?.message?.includes('401') ||
+        action.payload?.status === 401 ||
+        action.meta?.arg === undefined
+      ) {
+        // Handle when we don't reject with value
+        state.user = null;
+        state.isAuthenticated = false;
+        state.isLoading = false;
+        state.isLoggingIn = false;
+      }
     });
     builder
       .addCase(fetchUserThunk.pending, (state) => {

@@ -1,11 +1,92 @@
-import axios from 'axios';
-// import { logout } from '../store/slices/authSlice';
-// import { logoutUserThunk } from '../store/slices/authSlice'; // ✅ Import thunk instead of slice action
+// import axios from 'axios';
+// // import { logout } from '../store/slices/authSlice';
+// // import { logoutUserThunk } from '../store/slices/authSlice'; // ✅ Import thunk instead of slice action
 
+// // const api = axios.create({
+// //   baseURL: import.meta.env.VITE_API_URL || 'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
+// //   withCredentials: true,
+// // });
 // const api = axios.create({
-//   baseURL: import.meta.env.VITE_API_URL || 'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
+//   baseURL:
+//     import.meta.env.VITE_API_URL ||
+//     'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
 //   withCredentials: true,
+//   headers: {
+//     'Content-Type': 'application/json',
+//   },
 // });
+
+// let isRefreshing = false;
+// let failedQueue = [];
+
+// const processQueue = (error, token = null) => {
+//   failedQueue.forEach((prom) => {
+//     if (error) {
+//       prom.reject(error);
+//     } else {
+//       prom.resolve(token);
+//     }
+//   });
+//   failedQueue = [];
+// };
+// api.interceptors.response.use(
+//   (response) => response,
+//   async (error) => {
+//     const originalRequest = error.config;
+
+//     if (
+//       // originalRequest.url.includes('/auth/me') ||
+//       originalRequest.url.includes('/auth/refresh-token')
+//     ) {
+//       return Promise.reject(error);
+//     }
+
+//     const isTokenExpired =
+//       error.response?.status === 401 &&
+//       error.response?.data?.message?.toLowerCase().includes('token expired');
+
+//     if (isTokenExpired && !originalRequest._retry) {
+//       if (isRefreshing) {
+//         return new Promise((resolve, reject) => {
+//           failedQueue.push({ resolve, reject });
+//         }).then(() => api(originalRequest));
+//       }
+
+//       originalRequest._retry = true;
+//       isRefreshing = true;
+
+//       try {
+//         await api.get('/auth/refresh-token');
+//         isRefreshing = false;
+//         processQueue(null);
+//         return api(originalRequest);
+//       } catch (refreshError) {
+//         isRefreshing = false;
+//         processQueue(refreshError, null);
+
+//         // ⬇️ Lazy import to avoid circular dependency
+//         const { store } = await import('../store/store');
+//         const { logoutUserThunk } = await import('../store/slices/authSlice');
+//         store.dispatch(logoutUserThunk());
+
+//         return Promise.reject(refreshError);
+//       }
+//     }
+
+//     if (error.response?.status === 401) {
+//       const { store } = await import('../store/store');
+//       const { logoutUserThunk } = await import('../store/slices/authSlice');
+//       store.dispatch(logoutUserThunk());
+//     }
+
+//     return Promise.reject(error);
+//   }
+// );
+
+// Auth endpoints
+
+import axios from 'axios';
+
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_URL ||
@@ -29,14 +110,16 @@ const processQueue = (error, token = null) => {
   });
   failedQueue = [];
 };
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
+    // Skip token refresh for these endpoints
     if (
-      // originalRequest.url.includes('/auth/me') ||
-      originalRequest.url.includes('/auth/refresh-token')
+      originalRequest.url.includes('/auth/refresh-token') ||
+      originalRequest.url.includes('/auth/logout') // ✅ Add this line
     ) {
       return Promise.reject(error);
     }
@@ -82,82 +165,6 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-// api.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
-
-//     if (
-//       originalRequest.url.includes('/auth/me') ||
-//       originalRequest.url.includes('/auth/refresh-token')
-//     ) {
-//       // console.log(
-//       //   'Skipping error handling for /auth/me or /auth/refresh-token'
-//       // );
-//       return Promise.reject(error);
-//     }
-
-//     if (
-//       error.response?.status === 401 &&
-//       error.response?.data?.message === 'Token expired' &&
-//       !originalRequest._retry
-//     ) {
-//       if (isRefreshing) {
-//         // console.log('Waiting for token refresh...');
-//         return new Promise((resolve, reject) => {
-//           failedQueue.push({ resolve, reject });
-//         })
-//           .then(() => {
-//             // console.log('Retrying original request:', originalRequest.url);
-//             return api(originalRequest);
-//           })
-//           .catch((err) => {
-//             console.error('Retry failed:', err);
-//             return Promise.reject(err);
-//           });
-//       }
-
-//       originalRequest._retry = true;
-//       isRefreshing = true;
-//       // console.log('Attempting to refresh token...');
-
-//       try {
-//         const response = await api.get('/auth/refresh-token');
-//         // console.log('Token refresh response:', response.data);
-//         isRefreshing = false;
-//         processQueue(null);
-//         return api(originalRequest);
-//       } catch (refreshError) {
-//         console.error(
-//           'Token refresh failed:',
-//           refreshError.response?.data || refreshError.message
-//         );
-//         isRefreshing = false;
-//         processQueue(refreshError, null);
-//         document.cookie =
-//           'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//         document.cookie =
-//           'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//         store.dispatch(logout());
-//         return Promise.reject(refreshError);
-//       }
-//     }
-
-//     if (error.response?.status === 401) {
-//       // console.log('Handling 401 error, clearing cookies and logging out');
-//       document.cookie =
-//         'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//       document.cookie =
-//         'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//       store.dispatch(logout());
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-// Auth endpoints
 export const register = (data) => api.post('/auth/signup', data);
 export const login = (data) => api.post('/auth/login', data);
 export const logoutUser = () => api.post('/auth/logout');
