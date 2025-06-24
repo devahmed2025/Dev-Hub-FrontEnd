@@ -76,6 +76,7 @@
 
 //   return children;
 // }
+
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -86,6 +87,12 @@ import {
   fetchUserThunk,
 } from '../store/slices/authSlice';
 
+// Helper to get cookie value
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
+}
+
 export default function AuthInitializer({ children }) {
   const dispatch = useDispatch();
   const { isLoading } = useSelector((state) => state.auth);
@@ -94,50 +101,45 @@ export default function AuthInitializer({ children }) {
     const checkAuth = async () => {
       dispatch(setLoading(true));
 
-      const pathname = window.location.pathname;
-      const isOauthSuccess = pathname.includes('/oauth/success');
-      const isOauthFailed = pathname.includes('/auth/login/failed');
+      const isOauthSuccess = window.location.pathname.includes('/oauth/success');
+      const isFailed = window.location.pathname.includes('/auth/login/failed');
 
-      // Handle failed OAuth login
-      if (isOauthFailed) {
+      if (isFailed) {
         dispatch(setAuthState({ user: null, isAuthenticated: false }));
         window.history.replaceState({}, '', '/');
         dispatch(setLoading(false));
         return;
       }
 
-      const attemptAuth = async () => {
-        try {
-          const resultAction = await dispatch(fetchUserThunk());
-          if (fetchUserThunk.fulfilled.match(resultAction)) {
-            return resultAction.payload;
-          }
-          return null;
-        } catch (error) {
-          console.error('Auth attempt failed:', error);
-          return null;
-        }
-      };
+      const accessToken = getCookie('accessToken');
+
+      if (!accessToken) {
+        // No token, user is not logged in
+        dispatch(setAuthState({ user: null, isAuthenticated: false }));
+        dispatch(setLoading(false));
+        return;
+      }
 
       try {
-        if (isOauthSuccess) {
-          const user = await attemptAuth();
+        const resultAction = await dispatch(fetchUserThunk());
 
-          // Remove /oauth/success from URL after login
-          window.history.replaceState({}, '', '/');
+        if (fetchUserThunk.fulfilled.match(resultAction)) {
+          const user = resultAction.payload;
 
-          if (user) {
+          if (isOauthSuccess) {
             dispatch(oauthSuccess({ user }));
-            dispatch(setAuthState({ user, isAuthenticated: true }));
+            window.history.replaceState({}, '', '/');
           } else {
-            dispatch(oauthFailure('OAuth user fetch failed'));
-            dispatch(setAuthState({ user: null, isAuthenticated: false }));
+            dispatch(setAuthState({ user, isAuthenticated: true }));
           }
         } else {
-          const user = await attemptAuth();
-          dispatch(setAuthState({ user, isAuthenticated: !!user }));
+          throw new Error('Auth failed');
         }
-      } catch (err) {
+      } catch (error) {
+        console.log('Auth error:', error);
+        if (isOauthSuccess) {
+          dispatch(oauthFailure('OAuth token invalid'));
+        }
         dispatch(setAuthState({ user: null, isAuthenticated: false }));
       } finally {
         dispatch(setLoading(false));
@@ -150,7 +152,7 @@ export default function AuthInitializer({ children }) {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin h-12 w-12 rounded-full border-4 border-blue-500 border-t-transparent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
