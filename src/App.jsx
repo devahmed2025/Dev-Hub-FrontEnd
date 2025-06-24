@@ -1028,7 +1028,7 @@ function App() {
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
         <div className={isDarkMode ? 'dark' : ''}>
-          <AuthInitializer>
+          {/* <AuthInitializer> */}
             <div className="fixed right-4 top-4 z-50">
               {/* <DarkModeToggle /> */}
             </div>
@@ -1049,7 +1049,7 @@ function App() {
               }
               bodyClassName={isDarkMode ? 'text-gray-100' : 'text-gray-800'}
             />
-          </AuthInitializer>
+          {/* </AuthInitializer> */}
         </div>
       </QueryClientProvider>
     </Provider>
