@@ -77,7 +77,8 @@
 //   return children;
 // }
 
-import { useEffect } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   setAuthState,
@@ -87,7 +88,6 @@ import {
   fetchUserThunk,
 } from '../store/slices/authSlice';
 
-// Helper to get cookie value
 function getCookie(name) {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
   return match ? match[2] : null;
@@ -95,36 +95,38 @@ function getCookie(name) {
 
 export default function AuthInitializer({ children }) {
   const dispatch = useDispatch();
+  const [initialized, setInitialized] = useState(false); // ✅ block children until done
   const { isLoading } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const initAuth = async () => {
       dispatch(setLoading(true));
 
-      const isOauthSuccess = window.location.pathname.includes('/oauth/success');
+      const isOauthSuccess =
+        window.location.pathname.includes('/oauth/success');
       const isFailed = window.location.pathname.includes('/auth/login/failed');
+      const accessToken = getCookie('accessToken');
 
       if (isFailed) {
         dispatch(setAuthState({ user: null, isAuthenticated: false }));
         window.history.replaceState({}, '', '/');
+        setInitialized(true);
         dispatch(setLoading(false));
         return;
       }
 
-      const accessToken = getCookie('accessToken');
-
       if (!accessToken) {
-        // No token, user is not logged in
         dispatch(setAuthState({ user: null, isAuthenticated: false }));
+        setInitialized(true);
         dispatch(setLoading(false));
         return;
       }
 
       try {
-        const resultAction = await dispatch(fetchUserThunk());
+        const result = await dispatch(fetchUserThunk());
 
-        if (fetchUserThunk.fulfilled.match(resultAction)) {
-          const user = resultAction.payload;
+        if (fetchUserThunk.fulfilled.match(result)) {
+          const user = result.payload;
 
           if (isOauthSuccess) {
             dispatch(oauthSuccess({ user }));
@@ -133,26 +135,25 @@ export default function AuthInitializer({ children }) {
             dispatch(setAuthState({ user, isAuthenticated: true }));
           }
         } else {
-          throw new Error('Auth failed');
+          throw new Error('Failed to fetch user');
         }
-      } catch (error) {
-        console.log('Auth error:', error);
-        if (isOauthSuccess) {
-          dispatch(oauthFailure('OAuth token invalid'));
-        }
+      } catch (err) {
+        console.error('Auth error:', err);
         dispatch(setAuthState({ user: null, isAuthenticated: false }));
+        if (isOauthSuccess) dispatch(oauthFailure('Invalid token'));
       } finally {
+        setInitialized(true); // ✅ only render children once auth is checked
         dispatch(setLoading(false));
       }
     };
 
-    checkAuth();
+    initAuth();
   }, [dispatch]);
 
-  if (isLoading) {
+  if (!initialized) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+        <div className="animate-spin h-10 w-10 border-4 border-blue-500 border-t-transparent rounded-full" />
       </div>
     );
   }
