@@ -1,20 +1,15 @@
-// import axios from 'axios';
-// // import { logout } from '../store/slices/authSlice';
-// // import { logoutUserThunk } from '../store/slices/authSlice'; // ✅ Import thunk instead of slice action
 
-// // const api = axios.create({
-// //   baseURL: import.meta.env.VITE_API_URL || 'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
-// //   withCredentials: true,
-// // });
-// const api = axios.create({
-//   baseURL:
-//     import.meta.env.VITE_API_URL ||
-//     'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
-//   withCredentials: true,
-//   headers: {
-//     'Content-Type': 'application/json',
-//   },
-// });
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // let isRefreshing = false;
 // let failedQueue = [];
@@ -29,307 +24,161 @@
 //   });
 //   failedQueue = [];
 // };
+
 // api.interceptors.response.use(
 //   (response) => response,
 //   async (error) => {
 //     const originalRequest = error.config;
+//     const requestUrl = originalRequest.url;
+//     const errorStatus = error.response?.status;
+//     const errorMessage = error.response?.data?.message;
+//     console.log('🔥 Raw error:', error.response?.data);
+//     console.log('🔥 msg error:', errorMessage);
 
-//     if (
-//       // originalRequest.url.includes('/auth/me') ||
-//       originalRequest.url.includes('/auth/refresh-token')
-//     ) {
-//       return Promise.reject(error);
-//     }
-
-//     const isTokenExpired =
-//       error.response?.status === 401 &&
-//       error.response?.data?.message?.toLowerCase().includes('token expired');
-
-//     if (isTokenExpired && !originalRequest._retry) {
-//       if (isRefreshing) {
-//         return new Promise((resolve, reject) => {
-//           failedQueue.push({ resolve, reject });
-//         }).then(() => api(originalRequest));
-//       }
-
-//       originalRequest._retry = true;
-//       isRefreshing = true;
-
-//       try {
-//         await api.get('/auth/refresh-token');
-//         isRefreshing = false;
-//         processQueue(null);
-//         return api(originalRequest);
-//       } catch (refreshError) {
-//         isRefreshing = false;
-//         processQueue(refreshError, null);
-
-//         // ⬇️ Lazy import to avoid circular dependency
-//         const { store } = await import('../store/store');
-//         const { logoutUserThunk } = await import('../store/slices/authSlice');
-//         store.dispatch(logoutUserThunk());
-
-//         return Promise.reject(refreshError);
-//       }
-//     }
-
-//     if (error.response?.status === 401) {
-//       const { store } = await import('../store/store');
-//       const { logoutUserThunk } = await import('../store/slices/authSlice');
-//       store.dispatch(logoutUserThunk());
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
-
-// Auth endpoints
-
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_URL ||
-    'https://vvvejhxellmt.eu-central-1.clawcloudrun.com/api/v1',
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-let isRefreshing = false;
-let failedQueue = [];
-
-const processQueue = (error, token = null) => {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error);
-    } else {
-      prom.resolve(token);
-    }
-  });
-  failedQueue = [];
-};
-//sma as the working but other has logging only
-// api.interceptors.response.use(
-//   (response) => response,
-//   async (error) => {
-//     const originalRequest = error.config;
+//     console.log(`🔍 Interceptor triggered for ${requestUrl}:`, {
+//       status: errorStatus,
+//       message: errorMessage,
+//       hasRetry: !!originalRequest._retry,
+//     });
 
 //     // Skip interception for these endpoints
 //     if (
-//       originalRequest.url.includes('/auth/refresh-token') ||
-//       originalRequest.url.includes('/auth/logout')
+//       requestUrl.includes('/auth/refresh-token') ||
+//       requestUrl.includes('/auth/logout')
 //     ) {
+//       console.log(`⏭️ Skipping interception for ${requestUrl}`);
 //       return Promise.reject(error);
 //     }
 
 //     // Check for token expiration (more robust)
-//     const isTokenExpired = error.response?.status === 401 &&
-//       (error.response?.data?.code === 'TOKEN_EXPIRED' ||
-//        error.response?.data?.message?.toLowerCase().includes('token expired'));
+//     const isTokenExpired =
+//       errorStatus === 401 &&
+//       (error.response?.data?.code === 'TOKEN_EXPIRED' || // backend-defined error code
+//         error.response?.data?.message
+//           ?.toLowerCase()
+//           ?.includes('token expired') || // message contains "token expired"
+//         error.response?.data?.message?.toLowerCase()?.includes('jwt expired') || // common JWT library error
+//         errorMessage?.toLowerCase()?.includes('token expired') || // fallback errorMessage string
+//         errorMessage?.toLowerCase()?.includes('jwt expired')); // fallback errorMessage string
+//     // ✅ Check for no token provided (user needs to login)
+//     const isNoToken =
+//       errorStatus === 401 &&
+//       (errorMessage?.toLowerCase().includes('no authentication token') ||
+//         errorMessage?.toLowerCase().includes('no token provided') ||
+//         errorMessage?.toLowerCase().includes('token not provided'));
 
+//     console.log(`🔐 Auth error analysis:`, {
+//       isTokenExpired,
+//       isNoToken,
+//       errorCode: error.response?.data?.code,
+//       errorMessage: errorMessage,
+//     });
+
+//     // Handle token expiration - try to refresh
 //     if (isTokenExpired && !originalRequest._retry) {
 //       if (isRefreshing) {
+//         console.log('⏳ Token refresh already in progress, queuing request...');
 //         return new Promise((resolve, reject) => {
 //           failedQueue.push({ resolve, reject });
 //         })
-//           .then(() => api(originalRequest))
-//           .catch(err => Promise.reject(err));
+//           .then(() => {
+//             console.log(`🔄 Retrying queued request to ${requestUrl}`);
+//             return api(originalRequest);
+//           })
+//           .catch((err) => {
+//             console.error(`❌ Queued request failed for ${requestUrl}:`, err);
+//             return Promise.reject(err);
+//           });
 //       }
 
+//       console.log('🔑 Starting token refresh process...');
 //       originalRequest._retry = true;
 //       isRefreshing = true;
 
 //       try {
-//         await api.get('/auth/refresh-token');
+//         console.log('📡 Calling refresh token endpoint...');
+//         await api.get('/auth/refresh-token', { withCredentials: true });
+//         console.log('✅ Token refreshed successfully');
+
 //         isRefreshing = false;
 //         processQueue(null);
+
+//         console.log(`🔄 Retrying original request to ${requestUrl}...`);
 //         return api(originalRequest);
 //       } catch (refreshError) {
+//         console.error('❌ Token refresh failed:', refreshError);
+//         console.log('🚪 Initiating logout due to refresh failure...');
+
 //         isRefreshing = false;
 //         processQueue(refreshError, null);
 
-//         // Only logout if not already logging out
 //         const { store } = await import('../store/store');
-//         const { logoutUserThunk } = await import('../store/slices/authSlice');
+//         const { logout } = await import('../store/slices/authSlice'); // ✅ Use simple logout action
 
-//         if (!store.getState().auth.isLoggingOut) {
-//           await store.dispatch(logoutUserThunk());
-//         }
+//         console.log('🚪 Clearing auth state due to refresh failure...');
+//         store.dispatch(logout()); // Don't call API, just clear state
 
 //         return Promise.reject(refreshError);
 //       }
 //     }
 
-//     // Handle other 401 errors
-//     if (error.response?.status === 401 && !originalRequest._skipAuthCheck) {
+//     // Handle no token - user needs to login (don't call logout API)
+//     if (isNoToken && !originalRequest._skipAuthCheck) {
+//       console.log('🔑 No token provided - clearing auth state');
+
+//       const { store } = await import('../store/store');
+//       const { logout } = await import('../store/slices/authSlice'); // ✅ Use simple logout action
+
+//       const isCurrentlyLoggingOut = store.getState().auth.isLoggingOut;
+//       console.log('🔍 Current logout state for no token:', {
+//         isCurrentlyLoggingOut,
+//       });
+
+//       if (!isCurrentlyLoggingOut) {
+//         console.log('🚪 Clearing auth state for no token...');
+//         store.dispatch(logout()); // Don't call API, just clear state
+//       } else {
+//         console.log(
+//           '⏭️ Already logging out, skipping state clear for no token'
+//         );
+//       }
+
+//       return Promise.reject(error);
+//     }
+
+//     // Handle other 401 errors (invalid token, etc.)
+//     if (
+//       errorStatus === 401 &&
+//       !originalRequest._skipAuthCheck &&
+//       !isNoToken &&
+//       !isTokenExpired
+//     ) {
+//       console.log('🚨 Other 401 error detected - attempting logout');
+
 //       const { store } = await import('../store/store');
 //       const { logoutUserThunk } = await import('../store/slices/authSlice');
 
-//       if (!store.getState().auth.isLoggingOut) {
+//       const isCurrentlyLoggingOut = store.getState().auth.isLoggingOut;
+//       console.log('🔍 Current logout state for other 401:', {
+//         isCurrentlyLoggingOut,
+//       });
+
+//       if (!isCurrentlyLoggingOut) {
+//         console.log('🚪 Dispatching logout for other 401 error...');
 //         await store.dispatch(logoutUserThunk());
+//       } else {
+//         console.log(
+//           '⏭️ Already logging out, skipping logout dispatch for other 401'
+//         );
 //       }
 //     }
 
+//     console.log(
+//       `❌ Request to ${requestUrl} failed with status ${errorStatus}`
+//     );
 //     return Promise.reject(error);
 //   }
 // );
-
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const originalRequest = error.config;
-    const requestUrl = originalRequest.url;
-    const errorStatus = error.response?.status;
-    const errorMessage = error.response?.data?.message;
-    console.log('🔥 Raw error:', error.response?.data);
-    console.log('🔥 msg error:', errorMessage);
-
-    console.log(`🔍 Interceptor triggered for ${requestUrl}:`, {
-      status: errorStatus,
-      message: errorMessage,
-      hasRetry: !!originalRequest._retry,
-    });
-
-    // Skip interception for these endpoints
-    if (
-      requestUrl.includes('/auth/refresh-token') ||
-      requestUrl.includes('/auth/logout')
-    ) {
-      console.log(`⏭️ Skipping interception for ${requestUrl}`);
-      return Promise.reject(error);
-    }
-
-    // Check for token expiration (more robust)
-    const isTokenExpired =
-      errorStatus === 401 &&
-      (error.response?.data?.code === 'TOKEN_EXPIRED' || // backend-defined error code
-        error.response?.data?.message
-          ?.toLowerCase()
-          ?.includes('token expired') || // message contains "token expired"
-        error.response?.data?.message?.toLowerCase()?.includes('jwt expired') || // common JWT library error
-        errorMessage?.toLowerCase()?.includes('token expired') || // fallback errorMessage string
-        errorMessage?.toLowerCase()?.includes('jwt expired')); // fallback errorMessage string
-    // ✅ Check for no token provided (user needs to login)
-    const isNoToken =
-      errorStatus === 401 &&
-      (errorMessage?.toLowerCase().includes('no authentication token') ||
-        errorMessage?.toLowerCase().includes('no token provided') ||
-        errorMessage?.toLowerCase().includes('token not provided'));
-
-    console.log(`🔐 Auth error analysis:`, {
-      isTokenExpired,
-      isNoToken,
-      errorCode: error.response?.data?.code,
-      errorMessage: errorMessage,
-    });
-
-    // Handle token expiration - try to refresh
-    if (isTokenExpired && !originalRequest._retry) {
-      if (isRefreshing) {
-        console.log('⏳ Token refresh already in progress, queuing request...');
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(() => {
-            console.log(`🔄 Retrying queued request to ${requestUrl}`);
-            return api(originalRequest);
-          })
-          .catch((err) => {
-            console.error(`❌ Queued request failed for ${requestUrl}:`, err);
-            return Promise.reject(err);
-          });
-      }
-
-      console.log('🔑 Starting token refresh process...');
-      originalRequest._retry = true;
-      isRefreshing = true;
-
-      try {
-        console.log('📡 Calling refresh token endpoint...');
-        await api.get('/auth/refresh-token', { withCredentials: true });
-        console.log('✅ Token refreshed successfully');
-
-        isRefreshing = false;
-        processQueue(null);
-
-        console.log(`🔄 Retrying original request to ${requestUrl}...`);
-        return api(originalRequest);
-      } catch (refreshError) {
-        console.error('❌ Token refresh failed:', refreshError);
-        console.log('🚪 Initiating logout due to refresh failure...');
-
-        isRefreshing = false;
-        processQueue(refreshError, null);
-
-        const { store } = await import('../store/store');
-        const { logout } = await import('../store/slices/authSlice'); // ✅ Use simple logout action
-
-        console.log('🚪 Clearing auth state due to refresh failure...');
-        store.dispatch(logout()); // Don't call API, just clear state
-
-        return Promise.reject(refreshError);
-      }
-    }
-
-    // Handle no token - user needs to login (don't call logout API)
-    if (isNoToken && !originalRequest._skipAuthCheck) {
-      console.log('🔑 No token provided - clearing auth state');
-
-      const { store } = await import('../store/store');
-      const { logout } = await import('../store/slices/authSlice'); // ✅ Use simple logout action
-
-      const isCurrentlyLoggingOut = store.getState().auth.isLoggingOut;
-      console.log('🔍 Current logout state for no token:', {
-        isCurrentlyLoggingOut,
-      });
-
-      if (!isCurrentlyLoggingOut) {
-        console.log('🚪 Clearing auth state for no token...');
-        store.dispatch(logout()); // Don't call API, just clear state
-      } else {
-        console.log(
-          '⏭️ Already logging out, skipping state clear for no token'
-        );
-      }
-
-      return Promise.reject(error);
-    }
-
-    // Handle other 401 errors (invalid token, etc.)
-    if (
-      errorStatus === 401 &&
-      !originalRequest._skipAuthCheck &&
-      !isNoToken &&
-      !isTokenExpired
-    ) {
-      console.log('🚨 Other 401 error detected - attempting logout');
-
-      const { store } = await import('../store/store');
-      const { logoutUserThunk } = await import('../store/slices/authSlice');
-
-      const isCurrentlyLoggingOut = store.getState().auth.isLoggingOut;
-      console.log('🔍 Current logout state for other 401:', {
-        isCurrentlyLoggingOut,
-      });
-
-      if (!isCurrentlyLoggingOut) {
-        console.log('🚪 Dispatching logout for other 401 error...');
-        await store.dispatch(logoutUserThunk());
-      } else {
-        console.log(
-          '⏭️ Already logging out, skipping logout dispatch for other 401'
-        );
-      }
-    }
-
-    console.log(
-      `❌ Request to ${requestUrl} failed with status ${errorStatus}`
-    );
-    return Promise.reject(error);
-  }
-);
 export const register = (data) => api.post('/auth/signup', data);
 export const login = (data) => api.post('/auth/login', data);
 export const logoutUser = () => api.post('/auth/logout');
