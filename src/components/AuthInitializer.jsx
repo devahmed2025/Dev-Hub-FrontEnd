@@ -174,7 +174,9 @@ export default function AuthInitializer({ children }) {
       dispatch(setLoading(true));
 
       const urlParams = new URLSearchParams(window.location.search);
-      const oauthSuccessParam = urlParams.get('oauth/success');
+      // const oauthSuccessParam = urlParams.get('oauth/success');
+      const isOauthSuccess =
+        window.location.pathname.includes('/oauth/success');
       const isFailed = window.location.pathname.includes('/auth/login/failed');
 
       if (isFailed) {
@@ -202,7 +204,7 @@ export default function AuthInitializer({ children }) {
       };
 
       try {
-        if (oauthSuccessParam) {
+        if (isOauthSuccess) {
           window.history.replaceState({}, '', window.location.pathname);
           const user = await attemptAuth();
           dispatch(oauthSuccess({ user }));
