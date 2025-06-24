@@ -108,25 +108,25 @@ const CommunityPage = () => {
       }
       const now = Date.now();
       if (now - lastRequestTime.current < 500 || isFetching || !hasMore) {
-        console.log('Fetch skipped:', {
-          isFetching,
-          hasMore,
-          timeSinceLast: now - lastRequestTime.current,
-        });
+        // console.log('Fetch skipped:', {
+        //   isFetching,
+        //   hasMore,
+        //   timeSinceLast: now - lastRequestTime.current,
+        // });
         return;
       }
 
       lastRequestTime.current = now;
       setIsFetching(true);
       try {
-        console.log('Dispatching getPosts for page:', pageNum);
+        // console.log('Dispatching getPosts for page:', pageNum);
         await dispatch(getPosts({ page: pageNum })).unwrap();
         setPage(pageNum);
         if (pagination?.numberOfPages && pageNum >= pagination.numberOfPages) {
-          console.log('No more pages to fetch:', {
-            pageNum,
-            numberOfPages: pagination.numberOfPages,
-          });
+          // console.log('No more pages to fetch:', {
+          //   pageNum,
+          //   numberOfPages: pagination.numberOfPages,
+          // });
           setHasMore(false);
         }
       } catch (err) {
@@ -162,36 +162,36 @@ const CommunityPage = () => {
   );
 
   const handleSharePost = useCallback((post) => {
-    console.log('Sharing post:', post);
+    // console.log('Sharing post:', post);
   }, []);
 
   const handleReportPost = useCallback((post) => {
-    console.log('Reporting post:', post);
+    // console.log('Reporting post:', post);
   }, []);
 
   const lastPostElementRef = useCallback(
     (node) => {
       if (isFetching || !hasMore) {
-        console.log('Observer skipped:', { isFetching, hasMore });
+        // console.log('Observer skipped:', { isFetching, hasMore });
         return;
       }
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver(
         (entries) => {
-          console.log('IntersectionObserver triggered:', {
-            isIntersecting: entries[0].isIntersecting,
-            hasMore,
-            page,
-          });
+          // console.log('IntersectionObserver triggered:', {
+          //   isIntersecting: entries[0].isIntersecting,
+          //   hasMore,
+          //   page,
+          // });
           if (entries[0].isIntersecting && hasMore) {
-            console.log('Fetching next page:', page + 1);
+            // console.log('Fetching next page:', page + 1);
             fetchPosts(page + 1);
           }
         },
         { threshold: 0.5, rootMargin: '200px' }
       );
       if (node) {
-        console.log('Observing node:', node);
+        // console.log('Observing node:', node);
         observer.current.observe(node);
       }
     },
@@ -221,11 +221,11 @@ const CommunityPage = () => {
       }`}
     >
       <div className="container mx-auto px-4 py-8">
-        <img
+        {/* <img
           src="https://res.cloudinary.com/djzcvjwuv/image/upload/f_webp,q_auto,w_900,h_150,c_fill,g_auto/ChatGPT_Image_Jun_18_2025_02_20_18_PM_vyddao.png"
           alt="Community"
           className="mx-auto mb-4 rounded-full shadow-lg"
-        />
+        /> */}
         <div
           className={`rounded-xl p-6 mb-8 ${
             isDarkMode ? 'bg-gray-800' : 'bg-white'

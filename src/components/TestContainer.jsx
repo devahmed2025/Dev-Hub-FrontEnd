@@ -731,7 +731,7 @@ const TestContainer = () => {
     debounce(() => {
       if (isMounted.current && test?._id && status === 'started') {
         console.log('[TestContainer] Syncing timer for test ID:', test._id);
-        dispatch(beginTest(test._id));
+        dispatch(beginTest(test?._id));
       }
     }, 10000),
     [dispatch, test?._id, status]
@@ -744,13 +744,13 @@ const TestContainer = () => {
       saveState();
       toast.dismiss();
       syncTimerRef.current?.cancel();
-      console.log('[TestContainer] Cleanup: Saving state and cancelling sync');
+      // console.log('[TestContainer] Cleanup: Saving state and cancelling sync');
     };
   }, [syncTimerWithServer, saveState]);
 
   useEffect(() => {
-    console.log('[TestContainer] Loaded Test:', loadedTest);
-    console.log('[TestContainer] Redux User:', user);
+    // console.log('[TestContainer] Loaded Test:', loadedTest);
+    // console.log('[TestContainer] Redux User:', user);
     if (!user) {
       if (isMounted.current) {
         toast.error('Please log in access the test');
@@ -764,7 +764,7 @@ const TestContainer = () => {
       );
       const isOngoing = loadedTest.test.onGoingstudents?.includes(user._id);
       let isStale = false;
-      if (localState.test?._id === loadedTest.test._id && isOngoing) {
+      if (localState.test?._id === loadedTest.test?._id && isOngoing) {
         const localStartTime = new Date(localState.startTime).getTime();
         const serverStartTime = new Date(loadedTest.startTime).getTime();
         const timeDiff = Math.abs(localStartTime - serverStartTime) / 1000;
@@ -774,27 +774,27 @@ const TestContainer = () => {
           localState.answers?.length !== loadedTest.test.questions.length
         ) {
           isStale = true;
-          console.log('[TestContainer] Stale localStorage detected:', {
-            timeDiff,
-            localTimer: localState.timer,
-            serverTimer: loadedTest.remainingTime * 60,
-            answersLength: localState.answers?.length,
-            questionsLength: loadedTest.test.questions.length,
-          });
+          // console.log('[TestContainer] Stale localStorage detected:', {
+          //   timeDiff,
+          //   localTimer: localState.timer,
+          //   serverTimer: loadedTest.remainingTime * 60,
+          //   answersLength: localState.answers?.length,
+          //   questionsLength: loadedTest.test.questions.length,
+          // });
         }
       } else {
         isStale = true;
-        console.log('[TestContainer] Invalid localStorage:', {
-          localTestId: localState.test?._id,
-          serverTestId: loadedTest.test._id,
-          isOngoing,
-        });
+        // console.log('[TestContainer] Invalid localStorage:', {
+        //   localTestId: localState.test?._id,
+        //   serverTestId: loadedTest.test?._id,
+        //   isOngoing,
+        // });
       }
-      if (isStale || test?._id !== loadedTest.test._id) {
-        console.log(
-          '[TestContainer] Resetting state for test ID:',
-          loadedTest.test._id
-        );
+      if (isStale || test?._id !== loadedTest.test?._id) {
+        // console.log(
+        //   '[TestContainer] Resetting state for test ID:',
+        //   loadedTest.test?._id
+        // );
         dispatch(resetTest());
         dispatch(
           setTest({
@@ -809,11 +809,11 @@ const TestContainer = () => {
 
   useEffect(() => {
     if (loadedTest?.hasStarted && status === 'idle' && isMounted.current) {
-      console.log(
-        '[TestContainer] Test is ongoing, dispatching beginTest for test ID:',
-        loadedTest.test._id
-      );
-      dispatch(beginTest(loadedTest.test._id));
+      // console.log(
+      //   '[TestContainer] Test is ongoing, dispatching beginTest for test ID:',
+      //   loadedTest.test?._id
+      // );
+      dispatch(beginTest(loadedTest?.test?._id));
     }
   }, [dispatch, loadedTest, status]);
 
@@ -824,7 +824,7 @@ const TestContainer = () => {
         status === 'started' &&
         isMounted.current
       ) {
-        console.log('[TestContainer] Tab became visible, syncing timer');
+        // console.log('[TestContainer] Tab became visible, syncing timer');
         syncTimerRef.current();
       }
     };
@@ -836,7 +836,7 @@ const TestContainer = () => {
 
   useEffect(() => {
     if (error && isMounted.current) {
-      console.log('[TestContainer] Error:', error);
+      // console.log('[TestContainer] Error:', error);
       toast.error(error);
       if (
         error.includes('not found') ||
@@ -853,18 +853,18 @@ const TestContainer = () => {
 
   useEffect(() => {
     if (status !== 'started' || timer <= 0) {
-      console.log(
-        '[TestContainer] Stopping sync interval: status=',
-        status,
-        'timer=',
-        timer
-      );
+      // console.log(
+      //   '[TestContainer] Stopping sync interval: status=',
+      //   status,
+      //   'timer=',
+      //   timer
+      // );
       return;
     }
-    console.log(
-      '[TestContainer] Starting sync interval for test ID:',
-      test._id
-    );
+    // console.log(
+    //   '[TestContainer] Starting sync interval for test ID:',
+    //   test._id
+    // );
     const timerInterval = setInterval(() => {
       dispatch(updateTimer());
     }, 1000);
@@ -872,17 +872,17 @@ const TestContainer = () => {
       saveState();
     }, 10000);
     const syncInterval = setInterval(() => {
-      console.log(
-        '[TestContainer] Periodic sync triggered for test ID:',
-        test._id
-      );
+      // console.log(
+      //   '[TestContainer] Periodic sync triggered for test ID:',
+      //   test._id
+      // );
       syncTimerRef.current();
     }, 10000);
     return () => {
-      console.log(
-        '[TestContainer] Cleaning up intervals for test ID:',
-        test._id
-      );
+      // console.log(
+      //   '[TestContainer] Cleaning up intervals for test ID:',
+      //   test._id
+      // );
       clearInterval(timerInterval);
       clearInterval(saveInterval);
       clearInterval(syncInterval);
@@ -894,15 +894,15 @@ const TestContainer = () => {
       answers?.length > 0 &&
       answers.some((answer) => answer?.selectedOptionIndex != null)
     ) {
-      console.log(
-        '[TestContainer] Submitting test ID:',
-        test._id,
-        'with answers:',
-        answers
-      );
-      dispatch(finalizeTest({ testId: test._id, answers }));
+      // console.log(
+      //   '[TestContainer] Submitting test ID:',
+      //   test._id,
+      //   'with answers:',
+      //   answers
+      // );
+      dispatch(finalizeTest({ testId: test?._id, answers }));
     } else {
-      console.log('[TestContainer] No valid answers, preventing submission');
+      // console.log('[TestContainer] No valid answers, preventing submission');
       if (isMounted.current) {
         toast.error('Please answer at least one question before submitting');
       }
@@ -916,30 +916,30 @@ const TestContainer = () => {
       answers?.length > 0 &&
       answers.some((answer) => answer?.selectedOptionIndex != null)
     ) {
-      console.log(
-        '[TestContainer] Timer expired, auto-submitting test ID:',
-        test._id
-      );
+      // console.log(
+      //   '[TestContainer] Timer expired, auto-submitting test ID:',
+      //   test._id
+      // );
       handleSubmit();
     } else if (status === 'started' && timer <= 0) {
-      console.log(
-        '[TestContainer] Timer expired, no valid answers, resetting test'
-      );
+      // console.log(
+      //   '[TestContainer] Timer expired, no valid answers, resetting test'
+      // );
       dispatch(resetTest());
       if (isMounted.current) {
         toast.info('Test time expired without answers. Test reset.');
         navigate('/tests');
       }
     }
-  }, [timer, status, answers, handleSubmit, dispatch, navigate,test._id]);
+  }, [timer, status, answers, handleSubmit, dispatch, navigate, test?._id]);
 
   const handleStartTest = useCallback(() => {
     if (loadedTest?.test?._id) {
-      console.log(
-        '[TestContainer] Starting test with ID:',
-        loadedTest.test._id
-      );
-      dispatch(beginTest(loadedTest.test._id));
+      // console.log(
+      //   '[TestContainer] Starting test with ID:',
+      //   loadedTest.test._id
+      // );
+      dispatch(beginTest(loadedTest.test?._id));
     } else if (isMounted.current) {
       toast.error('Test ID not found');
     }

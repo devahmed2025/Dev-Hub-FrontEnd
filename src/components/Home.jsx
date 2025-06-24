@@ -1320,8 +1320,9 @@ import {
 import LoadingSpinner from './ui/LoadingSpinner';
 
 function Home() {
+  
   const { user } = useSelector((state) => state.auth);
-  console.log(user,'user from home is')
+  // console.log(user,'user from home is')
   const { isDarkMode } = useDarkMode();
   const navigate = useNavigate();
 

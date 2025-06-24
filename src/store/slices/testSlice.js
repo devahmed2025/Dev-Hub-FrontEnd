@@ -1037,7 +1037,7 @@ const TEST_STATE_KEY = 'testState';
 // Debounced saveState
 const saveState = debounce((stateToPersist) => {
   try {
-    console.log('[saveState] Saving:', stateToPersist);
+    // console.log('[saveState] Saving:', stateToPersist);
     localStorage.setItem(TEST_STATE_KEY, JSON.stringify(stateToPersist));
   } catch (err) {
     console.error('[saveState] Error:', err);
@@ -1086,7 +1086,7 @@ const loadPersistedState = () => {
     const serializedState = localStorage.getItem(TEST_STATE_KEY);
     if (serializedState) {
       const state = JSON.parse(serializedState);
-      console.log('[loadPersistedState] Loaded:', state);
+      // console.log('[loadPersistedState] Loaded:', state);
       if (
         state.test &&
         Array.isArray(state.answers) &&
@@ -1114,9 +1114,9 @@ const loadPersistedState = () => {
           state.test.questions &&
           state.answers.length !== state.test.questions.length
         ) {
-          console.log(
-            '[loadPersistedState] Answers length mismatch, resetting answers'
-          );
+          // console.log(
+          //   '[loadPersistedState] Answers length mismatch, resetting answers'
+          // );
           state.answers = Array(state.test.questions.length).fill(null);
         }
         return state;
@@ -1153,7 +1153,7 @@ export const loadTest = createAsyncThunk(
   async (testId, { rejectWithValue }) => {
     try {
       const response = await fetchTestDetails(testId);
-      console.log('[loadTest] Response:', response.data);
+      // console.log('[loadTest] Response:', response.data);
       return response.data;
     } catch (err) {
       console.error('[loadTest] Error:', err.message);
@@ -1169,7 +1169,7 @@ export const beginTest = createAsyncThunk(
   async (testId, { rejectWithValue, getState }) => {
     try {
       const response = await startTest(testId);
-      console.log('[beginTest] Response:', response.data);
+      // console.log('[beginTest] Response:', response.data);
       if (response.data.submitted) {
         return rejectWithValue('Test time is up. Auto-submitted.');
       }
@@ -1185,12 +1185,12 @@ export const beginTest = createAsyncThunk(
         const adjustedLocalTimer = Math.max(0, localTimer - elapsedSeconds);
         const serverTimer = response.data.remainingTime * 60;
         const timer = Math.min(adjustedLocalTimer, serverTimer);
-        console.log('[beginTest] Syncing timer:', {
-          localTimer,
-          adjustedLocalTimer,
-          serverTimer,
-          finalTimer: timer,
-        });
+        // console.log('[beginTest] Syncing timer:', {
+        //   localTimer,
+        //   adjustedLocalTimer,
+        //   serverTimer,
+        //   finalTimer: timer,
+        // });
         return {
           remainingTime: timer,
           startTime: state.startTime || response.data.startTime,
@@ -1219,9 +1219,9 @@ export const finalizeTest = createAsyncThunk(
         questionIndex: index,
         selectedOptionIndex: answer?.selectedOptionIndex ?? null,
       }));
-      console.log('[finalizeTest] Submitting answers:', formattedAnswers);
+      // console.log('[finalizeTest] Submitting answers:', formattedAnswers);
       const response = await submitTest(testId, formattedAnswers);
-      console.log('[finalizeTest] Response:', response.data);
+      // console.log('[finalizeTest] Response:', response.data);
       return response.data;
     } catch (err) {
       console.error('[finalizeTest] Error:', err.message);
@@ -1237,7 +1237,7 @@ export const loadCategories = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await fetchCategories();
-      console.log('[loadCategories] Response:', response.data);
+      // console.log('[loadCategories] Response:', response.data);
       return response.data;
     } catch (err) {
       console.error('[loadCategories] Error:', err.message);
@@ -1253,7 +1253,7 @@ export const addCategory = createAsyncThunk(
   async (categoryData, { rejectWithValue }) => {
     try {
       const response = await createCategory(categoryData);
-      console.log('[addCategory] Response:', response.data);
+      // console.log('[addCategory] Response:', response.data);
       return response.data.data || response.data;
     } catch (err) {
       console.error('[addCategory] Error:', err.message);
@@ -1269,7 +1269,7 @@ export const addTest = createAsyncThunk(
   async (testData, { rejectWithValue }) => {
     try {
       const response = await createTest(testData);
-      console.log('[addTest] Response:', response.data);
+      // console.log('[addTest] Response:', response.data);
       return response.data.data || response.data;
     } catch (err) {
       console.error('[addTest] Error:', err.message);
@@ -1285,7 +1285,7 @@ export const editTest = createAsyncThunk(
   async ({ testId, testData }, { rejectWithValue }) => {
     try {
       const response = await updateTest(testId, testData);
-      console.log('[editTest] Response:', response.data);
+      // console.log('[editTest] Response:', response.data);
       return { testId, test: response.data.test };
     } catch (err) {
       console.error('[editTest] Error:', err.message);
@@ -1301,7 +1301,7 @@ export const removeTest = createAsyncThunk(
   async (testId, { rejectWithValue }) => {
     try {
       await deleteTest(testId);
-      console.log('[removeTest] Success:', testId);
+      // console.log('[removeTest] Success:', testId);
       return testId;
     } catch (err) {
       console.error('[removeTest] Error:', err.message);
@@ -1317,7 +1317,7 @@ export const loadTestGrades = createAsyncThunk(
   async (testId, { rejectWithValue }) => {
     try {
       const response = await fetchTestGrades(testId);
-      console.log('[loadTestGrades] Response:', response.data);
+      // console.log('[loadTestGrades] Response:', response.data);
       return response.data;
     } catch (err) {
       console.error('[loadTestGrades] Error:', err.message);
@@ -1333,7 +1333,7 @@ export const fetchAllTests = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await fetchTests();
-      console.log('[fetchAllTests] Response:', response.data);
+      // console.log('[fetchAllTests] Response:', response.data);
       return response.data;
     } catch (err) {
       console.error('[fetchAllTests] Error:', err.message);

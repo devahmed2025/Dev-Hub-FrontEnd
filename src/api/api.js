@@ -183,6 +183,8 @@ api.interceptors.response.use(
     const requestUrl = originalRequest.url;
     const errorStatus = error.response?.status;
     const errorMessage = error.response?.data?.message;
+    console.log('🔥 Raw error:', error.response?.data);
+    console.log('🔥 msg error:', errorMessage);
 
     console.log(`🔍 Interceptor triggered for ${requestUrl}:`, {
       status: errorStatus,
@@ -202,9 +204,13 @@ api.interceptors.response.use(
     // Check for token expiration (more robust)
     const isTokenExpired =
       errorStatus === 401 &&
-      (error.response?.data?.code === 'TOKEN_EXPIRED' ||
-        errorMessage?.toLowerCase().includes('token expired'));
-
+      (error.response?.data?.code === 'TOKEN_EXPIRED' || // backend-defined error code
+        error.response?.data?.message
+          ?.toLowerCase()
+          ?.includes('token expired') || // message contains "token expired"
+        error.response?.data?.message?.toLowerCase()?.includes('jwt expired') || // common JWT library error
+        errorMessage?.toLowerCase()?.includes('token expired') || // fallback errorMessage string
+        errorMessage?.toLowerCase()?.includes('jwt expired')); // fallback errorMessage string
     // ✅ Check for no token provided (user needs to login)
     const isNoToken =
       errorStatus === 401 &&
@@ -242,7 +248,7 @@ api.interceptors.response.use(
 
       try {
         console.log('📡 Calling refresh token endpoint...');
-        await api.get('/auth/refresh-token');
+        await api.get('/auth/refresh-token', { withCredentials: true });
         console.log('✅ Token refreshed successfully');
 
         isRefreshing = false;

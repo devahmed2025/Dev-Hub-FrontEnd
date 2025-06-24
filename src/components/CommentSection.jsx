@@ -57,7 +57,7 @@ const CommentSection = memo(({ postId }) => {
   // Add this to your component
   useEffect(() => {
     if (commentsByPostId[postId]) {
-      console.log('Current comments:', commentsByPostId[postId]);
+      // console.log('Current comments:', commentsByPostId[postId]);
     }
   }, [commentsByPostId, postId]);
   const handleEditComment = useCallback(

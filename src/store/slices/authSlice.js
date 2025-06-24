@@ -40,7 +40,7 @@ export const fetchUserThunk = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const res = await api.get('/auth/me');
-      console.log(res.data.data, 'res of auth slice');
+      // console.log(res.data.data, 'res of auth slice');
       return res.data.data;
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);

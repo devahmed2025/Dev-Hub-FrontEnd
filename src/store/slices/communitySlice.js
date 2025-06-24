@@ -533,7 +533,7 @@ export const getPosts = createAsyncThunk(
   'community/fetchPosts',
   async ({ page = 1 } = {}, { rejectWithValue }) => { // Default to page 1
     try {
-      console.log('Fetching posts for page:', page); // Debug log
+      // console.log('Fetching posts for page:', page); // Debug log
       const response = await fetchPosts(page);
       return {
         data: response.data,

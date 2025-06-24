@@ -173,7 +173,7 @@ const categoryLoader = async ({ params }) => {
 const coursesLoader = async () => {
   try {
     const data = await fetchCourses();
-    if (import.meta.env.DEV) console.log('coursesLoader Data:', data);
+    // if (import.meta.env.DEV) console.log('coursesLoader Data:', data);
     return { courses: data.data, status: 'succeeded', error: null };
   } catch (error) {
     console.error('coursesLoader Error:', error.message);
@@ -566,12 +566,12 @@ const addToCartAction = async ({ request }) => {
   try {
     const formData = await request.formData();
     const { courseId, isFree } = Object.fromEntries(formData);
-    console.log(
-      '[addToCartAction] Adding course to cart:',
-      courseId,
-      'isFree:',
-      isFree
-    );
+    // console.log(
+    //   '[addToCartAction] Adding course to cart:',
+    //   courseId,
+    //   'isFree:',
+    //   isFree
+    // );
     const response = await api.post('/cart', { courseId });
     return response.data;
   } catch (error) {
@@ -596,7 +596,7 @@ const createOrderAction = async ({ request }) => {
   try {
     const formData = await request.formData();
     const { cartId } = Object.fromEntries(formData);
-    console.log('[createOrderAction] Creating order for cart:', cartId);
+    // console.log('[createOrderAction] Creating order for cart:', cartId);
     const response = await api.post('/orders', { cartId });
     return response.data.data;
   } catch (error) {
