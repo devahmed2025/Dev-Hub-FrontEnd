@@ -1,146 +1,62 @@
-// // import { useEffect } from 'react';
-// // import { useDispatch } from 'react-redux';
-// // import { getCurrentUser } from '../api/api';
-// // import { setAuthState, setLoading, oauthSuccess } from '../store/slices/authSlice';
-
-// // export default function AuthInitializer({ children }) {
-// //   const dispatch = useDispatch();
-
-// //   useEffect(() => {
-// //     const checkAuth = async () => {
-// //       try {
-// //         dispatch(setLoading(true));
-
-// //         const urlParams = new URLSearchParams(window.location.search);
-// //         const oauthSuccess = urlParams.get('oauth_success');
-// //         const isFailed = window.location.pathname.includes('/auth/login/failed');
-
-// //         if (isFailed) {
-// //           console.log('OAuth login failed detected, clearing cookies...');
-// //           document.cookie = 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-// //           document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-// //           document.cookie = 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/auth;';
-// //           dispatch(setAuthState({ user: null, isAuthenticated: false }));
-// //           window.history.replaceState({}, '', '/');
-// //           return;
-// //         }
-
-// //         const attemptAuth = async () => {
-// //           try {
-// //             const response = await getCurrentUser();
-// //             console.log('getCurrentUser response:', response.data);
-// //             return response.data.data;
-// //           } catch (error) {
-// //             console.error('Auth attempt failed:', error.response?.data || error.message);
-// //             throw error;
-// //           }
-// //         };
-
-// //         if (oauthSuccess) {
-// //           console.log('OAuth success detected, checking user...');
-// //           window.history.replaceState({}, '', window.location.pathname);
-// //           const user = await attemptAuth();
-// //           dispatch(oauthSuccess({ user }));
-// //           return;
-// //         }
-
-// //         console.log('Performing regular auth check...');
-// //         const user = await attemptAuth();
-// //         dispatch(setAuthState({ user, isAuthenticated: true }));
-// //       } catch (error) {
-// //         console.error('AuthInitializer error:', error.message);
-// //         dispatch(setAuthState({ user: null, isAuthenticated: false }));
-// //       } finally {
-// //         dispatch(setLoading(false));
-// //       }
-// //     };
-
-// //     checkAuth();
-// //   }, [dispatch]);
-
-// //   return children;
-// // }
-
 // import { useEffect } from 'react';
-// import { useDispatch } from 'react-redux';
+// import { useDispatch, useSelector } from 'react-redux';
 // import { getCurrentUser } from '../api/api';
 // import {
 //   setAuthState,
 //   setLoading,
 //   oauthSuccess,
+//   fetchUserThunk,
 // } from '../store/slices/authSlice';
-
-// // Helper function to get cookie value
-// const getCookie = (name) => {
-//   const value = `; ${document.cookie}`;
-//   const parts = value.split(`; ${name}=`);
-//   if (parts.length === 2) return parts.pop().split(';').shift();
-// };
 
 // export default function AuthInitializer({ children }) {
 //   const dispatch = useDispatch();
+//   const { isLoading } = useSelector((state) => state.auth);
 
 //   useEffect(() => {
 //     const checkAuth = async () => {
-//       try {
-//         // Skip auth check if no tokens exist
-//         const accessToken = getCookie('accessToken');
-//         // if (!accessToken) {
-//         //   console.log('No auth token found - skipping auth check');
-//         //   dispatch(setLoading(false));
-//         //   return;
-//         // }
+//       dispatch(setLoading(true));
 
-//         dispatch(setLoading(true));
+//       const urlParams = new URLSearchParams(window.location.search);
+//       // const oauthSuccessParam = urlParams.get('oauth/success');
+//       const isOauthSuccess =
+//         window.location.pathname.includes('/oauth/success');
+//       const isFailed = window.location.pathname.includes('/auth/login/failed');
 
-//         const urlParams = new URLSearchParams(window.location.search);
-//         const oauthSuccessParam = urlParams.get('oauth/success');
-//         const isFailed =
-//           window.location.pathname.includes('/auth/login/failed');
+//       if (isFailed) {
+//         dispatch(setAuthState({ user: null, isAuthenticated: false }));
+//         window.history.replaceState({}, '', '/');
+//         dispatch(setLoading(false));
+//         return;
+//       }
 
-//         if (isFailed) {
-//           console.log('OAuth login failed detected, clearing cookies...');
-//           document.cookie =
-//             'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//           document.cookie =
-//             'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//           document.cookie =
-//             'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/auth;';
-//           dispatch(setAuthState({ user: null, isAuthenticated: false }));
-//           window.history.replaceState({}, '', '/');
-//           return;
-//         }
+//       const attemptAuth = async () => {
+//         try {
+//           // ✅ Await the result of the thunk
+//           const resultAction = await dispatch(fetchUserThunk());
 
-//         const attemptAuth = async () => {
-//           try {
-//             const response = await getCurrentUser();
-//             console.log('getCurrentUser response:', response.data);
-//             return response.data.data;
-//           } catch (error) {
-//             // Clear invalid tokens on 401
-//             if (error.response?.status === 401) {
-//               document.cookie =
-//                 'accessToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//               document.cookie =
-//                 'refreshToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-//             }
-//             throw error;
+//           // ✅ If needed, extract the user data from the fulfilled action
+//           if (fetchUserThunk.fulfilled.match(resultAction)) {
+//             return resultAction.payload;
+//           } else {
+//             throw new Error('Auth failed');
 //           }
-//         };
+//         } catch (error) {
+//           console.log('Auth check error:', error);
+//           return null;
+//         }
+//       };
 
-//         if (oauthSuccessParam) {
-//           console.log('OAuth success detected, checking user...');
+//       try {
+//         if (isOauthSuccess) {
 //           window.history.replaceState({}, '', window.location.pathname);
 //           const user = await attemptAuth();
 //           dispatch(oauthSuccess({ user }));
 //           return;
 //         }
 
-//         console.log('Performing regular auth check...');
 //         const user = await attemptAuth();
 //         dispatch(setAuthState({ user, isAuthenticated: true }));
-//       } catch (error) {
-//         console.error('AuthInitializer error:', error.message);
+//       } catch {
 //         dispatch(setAuthState({ user: null, isAuthenticated: false }));
 //       } finally {
 //         dispatch(setLoading(false));
@@ -150,10 +66,16 @@
 //     checkAuth();
 //   }, [dispatch]);
 
+//   if (isLoading) {
+//     return (
+//       <div className="flex justify-center items-center h-screen">
+//         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
+//       </div>
+//     );
+//   }
+
 //   return children;
 // }
-
-// src/components/AuthInitializer.jsx
 
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -163,6 +85,7 @@ import {
   setLoading,
   oauthSuccess,
   fetchUserThunk,
+  oauthFailure,
 } from '../store/slices/authSlice';
 
 export default function AuthInitializer({ children }) {
@@ -188,10 +111,14 @@ export default function AuthInitializer({ children }) {
 
       const attemptAuth = async () => {
         try {
-          // ✅ Await the result of the thunk
-          const resultAction = await dispatch(fetchUserThunk());
+          let resultAction = await dispatch(fetchUserThunk());
 
-          // ✅ If needed, extract the user data from the fulfilled action
+          if (fetchUserThunk.rejected.match(resultAction)) {
+            // 🕒 Delay and retry ONCE
+            await new Promise((res) => setTimeout(res, 500));
+            resultAction = await dispatch(fetchUserThunk());
+          }
+
           if (fetchUserThunk.fulfilled.match(resultAction)) {
             return resultAction.payload;
           } else {
@@ -206,9 +133,15 @@ export default function AuthInitializer({ children }) {
       try {
         if (isOauthSuccess) {
           window.history.replaceState({}, '', window.location.pathname);
+
           const user = await attemptAuth();
-          dispatch(oauthSuccess({ user }));
-          return;
+          if (user) {
+            dispatch(oauthSuccess({ user }));
+            return; // ✅ Don't continue
+          } else {
+            dispatch(oauthFailure('OAuth session invalid'));
+            dispatch(setAuthState({ user: null, isAuthenticated: false }));
+          }
         }
 
         const user = await attemptAuth();
