@@ -35,7 +35,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (
-      originalRequest.url.includes('/auth/me') ||
+      // originalRequest.url.includes('/auth/me') ||
       originalRequest.url.includes('/auth/refresh-token')
     ) {
       return Promise.reject(error);

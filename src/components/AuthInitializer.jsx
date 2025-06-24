@@ -162,6 +162,7 @@ import {
   setAuthState,
   setLoading,
   oauthSuccess,
+  fetchUserThunk,
 } from '../store/slices/authSlice';
 
 export default function AuthInitializer({ children }) {
@@ -184,8 +185,20 @@ export default function AuthInitializer({ children }) {
       }
 
       const attemptAuth = async () => {
-        const response = await getCurrentUser();
-        return response.data.data;
+        try {
+          // ✅ Await the result of the thunk
+          const resultAction = await dispatch(fetchUserThunk());
+
+          // ✅ If needed, extract the user data from the fulfilled action
+          if (fetchUserThunk.fulfilled.match(resultAction)) {
+            return resultAction.payload;
+          } else {
+            throw new Error('Auth failed');
+          }
+        } catch (error) {
+          console.log('Auth check error:', error);
+          return null;
+        }
       };
 
       try {
