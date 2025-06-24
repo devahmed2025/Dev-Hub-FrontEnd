@@ -116,23 +116,26 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Skip token refresh for these endpoints
+    // Skip interception for these endpoints
     if (
       originalRequest.url.includes('/auth/refresh-token') ||
-      originalRequest.url.includes('/auth/logout') // ✅ Add this line
+      originalRequest.url.includes('/auth/logout')
     ) {
       return Promise.reject(error);
     }
 
-    const isTokenExpired =
-      error.response?.status === 401 &&
-      error.response?.data?.message?.toLowerCase().includes('token expired');
+    // Check for token expiration (more robust)
+    const isTokenExpired = error.response?.status === 401 && 
+      (error.response?.data?.code === 'TOKEN_EXPIRED' || 
+       error.response?.data?.message?.toLowerCase().includes('token expired'));
 
     if (isTokenExpired && !originalRequest._retry) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then(() => api(originalRequest));
+        })
+          .then(() => api(originalRequest))
+          .catch(err => Promise.reject(err));
       }
 
       originalRequest._retry = true;
@@ -147,19 +150,26 @@ api.interceptors.response.use(
         isRefreshing = false;
         processQueue(refreshError, null);
 
-        // ⬇️ Lazy import to avoid circular dependency
+        // Only logout if not already logging out
         const { store } = await import('../store/store');
         const { logoutUserThunk } = await import('../store/slices/authSlice');
-        store.dispatch(logoutUserThunk());
+        
+        if (!store.getState().auth.isLoggingOut) {
+          await store.dispatch(logoutUserThunk());
+        }
 
         return Promise.reject(refreshError);
       }
     }
 
-    if (error.response?.status === 401) {
+    // Handle other 401 errors
+    if (error.response?.status === 401 && !originalRequest._skipAuthCheck) {
       const { store } = await import('../store/store');
       const { logoutUserThunk } = await import('../store/slices/authSlice');
-      store.dispatch(logoutUserThunk());
+      
+      if (!store.getState().auth.isLoggingOut) {
+        await store.dispatch(logoutUserThunk());
+      }
     }
 
     return Promise.reject(error);
